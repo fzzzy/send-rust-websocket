@@ -5,6 +5,8 @@ authors = ["Donovan Preston <donovanpreston@gmail.com>"]
 edition = "2018"
 
 [dependencies]
-websocket = "0.22.0"
+itertools = "0.8.0"
+ring = "0.13.5"
 serde_json = "1.0"
+websocket = "0.22.0"
 

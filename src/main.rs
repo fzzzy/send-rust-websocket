@@ -3,11 +3,15 @@
 #[macro_use]
 extern crate serde_json;
 
-use std::thread;
+use itertools::Itertools;
+use ring::rand::{SystemRandom, SecureRandom};
+
 use std::net::{SocketAddr, TcpStream};
-use websocket::sync::Server;
+use std::thread;
+
 use websocket::OwnedMessage;
 use websocket::sender::Writer;
+use websocket::sync::Server;
 
 fn close(mut sender: Writer<TcpStream>, ip: SocketAddr) {
     let message = OwnedMessage::Close(None);
@@ -20,6 +24,7 @@ fn main() {
 
     for request in server.filter_map(Result::ok) {
         thread::spawn(move || {
+            let rand = SystemRandom::new();
             let client = request.accept().unwrap();
             let ip = client.peer_addr().unwrap();
             let (mut receiver, mut sender) = client.split().unwrap();
@@ -43,27 +48,30 @@ fn main() {
                             first_message = false;
                             //println!("First message {}", msg);
                             // TODO Randomly generate values here
+                            let mut id: [u8; 5] = [0; 5];
+                            let mut owner: [u8; 10] = [0; 10];
+                            rand.fill(&mut id).unwrap();
+                            rand.fill(&mut owner).unwrap();
+
                             let json_data = json!({
-                                "url":"http://localhost:8080/download/000/",
-                                "ownerToken":"000",
-                                "id":"000"
+                                "url": format!("http://localhost:8080/download/{:02x}/", id.iter().format("")),
+                                "ownerToken": format!("{:02x}", owner.iter().format("")),
+                                "id": format!("{:02x}", id.iter().format(""))
                             });
                             let reply = OwnedMessage::Text(json_data.to_string());
                             sender.send_message(&reply).unwrap();
                         } else {
-                            println!("Got non-first message; closing socket");
+                            println!("{}: Got non-first message; closing socket", ip);
                             return close(sender, ip);
                         }
                     }
                     OwnedMessage::Binary(bin) => {
                         if first_message {
-                            println!("Got binary message before json metadata; closing socket");
+                            println!("{}: Got binary message before json metadata; closing socket", ip);
                             return close(sender, ip);
                         }
 
-                        //println!("Got binary message!");
                         if bin.len() == 1 &&  bin[0] == 0 {
-                            //println!("Got last binary packet!");
                             let json_data = json!({
                                 "ok": true
                             });
@@ -72,7 +80,7 @@ fn main() {
                         }
                     }
                     OwnedMessage::Pong(_) => {
-                        println!("Got pong message, but we should never get a pong; closing socket");
+                        println!("{}: Got pong message, but we should never get a pong; closing socket", ip);
                         return close(sender, ip);
                     }
                 }
