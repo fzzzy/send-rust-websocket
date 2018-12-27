@@ -1,0 +1,10 @@
+[package]
+name = "send-rust-websocket"
+version = "0.1.0"
+authors = ["Donovan Preston <donovanpreston@gmail.com>"]
+edition = "2018"
+
+[dependencies]
+websocket = "0.22.0"
+serde_json = "1.0"
+
