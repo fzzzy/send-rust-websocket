@@ -19,7 +19,7 @@ fn close(mut sender: Writer<TcpStream>, ip: SocketAddr) {
     println!("DISCONNECTED: {}", ip);
 }
 
-fn accepted(request: WsUpgrade<TcpStream, Option<Buffer>>) {
+pub fn accepted(request: WsUpgrade<TcpStream, Option<Buffer>>) {
     let rand = SystemRandom::new();
     let client = request.accept().unwrap();
     let ip = client.peer_addr().unwrap();
@@ -39,17 +39,17 @@ fn accepted(request: WsUpgrade<TcpStream, Option<Buffer>>) {
                 let message = OwnedMessage::Pong(ping);
                 sender.send_message(&message).unwrap();
             }
-            OwnedMessage::Text(_msg) => {
+            OwnedMessage::Text(msg) => {
                 if first_message {
                     first_message = false;
-                    //println!("First message {}", msg);
+                    println!("First message {}", msg);
                     let mut id: [u8; 5] = [0; 5];
                     let mut owner: [u8; 10] = [0; 10];
                     rand.fill(&mut id).unwrap();
                     rand.fill(&mut owner).unwrap();
 
                     let json_data = json!({
-                        "url": format!("http://localhost:8080/download/{:02x}/", id.iter().format("")),
+                        "url": format!("http://localhost:12223/download/{:02x}/", id.iter().format("")),
                         "ownerToken": format!("{:02x}", owner.iter().format("")),
                         "id": format!("{:02x}", id.iter().format(""))
                     });
